@@ -1,3 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>DB populator</title>
+        <link rel="stylesheet" href="style.css" type="text/css" media="all">
+    </head>
+    <body>
 <?php
 $dbName = $_GET['dbName'];
 $max = $_GET['numRows'];
@@ -84,14 +93,26 @@ foreach ($tables as $table) {
             else
                 echo ", ";
 
+            $goCustom = false;
+
             if (!empty($_GET[$attribute['Field']])) {
-                $defaultValues = explode(', ', $_GET[$attribute['Field']]);
-                if (stripos($attribute['Type'], "decimal") !== false 
+                $customValues = explode(', ', $_GET[$attribute['Field']]); // we actually want custom values
+                $goCustom = true;
+
+                if (!empty($_GET['STOP' . $attribute['Field']])) { // not repeat
+                    if ($i >= count($customValues))
+                        $goCustom = false;
+                }
+            }
+
+            if ($goCustom) {
+                $outStr = $customValues[$i % count($customValues)]; // custom values can be used
+
+                if (!(stripos($attribute['Type'], "decimal") !== false 
                     || stripos($attribute['Type'], "float") !== false
-                    || stripos($attribute['Type'], "int") !== false)
-                    echo $defaultValues[$i % count($defaultValues)];
-                else
-                    echo "'" . $defaultValues[$i % count($defaultValues)] . "'";
+                    || stripos($attribute['Type'], "int") !== false))
+                    $outStr = "'" . $outStr . "'";
+                echo $outStr;
             } else {
                 $pathPos = stripos($attribute['Field'] , "path");
                 if ($pathPos !== false)
@@ -131,3 +152,5 @@ foreach ($tables as $table) {
 }
 $mysqli->close();
 ?>
+    </body>
+</html>
