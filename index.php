@@ -7,7 +7,7 @@
         <link rel="stylesheet" href="style.css" type="text/css" media="all">
     </head>
     <body>
-        <form id="" action="dbPopulator.php" method="GET">
+        <form id="" action="addValues.php" method="GET">
             <div>
                 <label for="dbName">Database Name</label>
                 <select name="dbName">
@@ -26,10 +26,10 @@ $mysqli->close();
                 </select>
             </div>
             <div>
-                <label for="max">Number of lines per table</label>
-                <input type="number" name="max" value="">
+                <label for="numRows">Number of lines per table</label>
+                <input type="number" name="numRows" value="">
             </div>
-            <input type="submit" value="generate populator">
+            <input type="submit" value="next">
         </form>
     </body>
 </html>

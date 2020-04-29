@@ -1,14 +1,9 @@
 <?php
 $dbName = $_GET['dbName'];
-$max = $_GET['max'];
+$max = $_GET['numRows'];
 
 $mysqli = @new mysqli("127.0.0.1", "root", "", $dbName);
-$values = $mysqli->query("SHOW TABLES FROM "  . $dbName);
-$tables = [];
-
-foreach ($values as $value) {
-    array_push($tables, $value['Tables_in_' . $dbName]);
-}
+require "getDbData.php";
 
 $fksRaw = $mysqli->query("
 select fks.table_name as foreign_,
@@ -89,33 +84,44 @@ foreach ($tables as $table) {
             else
                 echo ", ";
 
-            $pathPos = stripos($attribute['Field'] , "path");
-            if ($pathPos !== false)
-                echo "'/path/to/" . substr($attribute['Field'], $pathPos + 4) . $i . "'";
-            elseif (stripos($attribute['Type'], "char") !== false)
-                echo "'" . $attribute['Field'] . $i . "'" ;
-            elseif (stripos($attribute['Type'], "int") !== false)
-                echo $i;
-            elseif (stripos($attribute['Type'], "decimal") !== false 
-                || stripos($attribute['Type'], "float") !== false)
-                echo $i . "..5";
-            elseif (stripos($attribute['Type'], "enum") !== false) {
-                $type = preg_replace("/enum|\(|\)|\'/", "", $attribute['Type']);
-                $enum = explode(',', $type);
-                if (isset($enum[$i]))
-                    echo "'" . $enum[$i] . "'";
+            if (!empty($_GET[$attribute['Field']])) {
+                $defaultValues = explode(', ', $_GET[$attribute['Field']]);
+                if (stripos($attribute['Type'], "decimal") !== false 
+                    || stripos($attribute['Type'], "float") !== false
+                    || stripos($attribute['Type'], "int") !== false)
+                    echo $defaultValues[$i % count($defaultValues)];
                 else
-                    echo "'" . $enum[0] . "'" ;
-            } elseif (stripos($attribute['Type'], "date") !== false) {
-                echo "'" . date("Y-m-d") . "'" ;
-            } elseif (stripos($attribute['Type'], "time") !== false) {
-                echo "'" . date("h:i:s") . "'" ;
-            } elseif (stripos($attribute['Type'], "year") !== false) {
-                echo "'" . date("Y") . "'" ;
-            } elseif (stripos($attribute['Type'], "text") !== false) {
-                echo "'someTExT'" ;
-            } else
-                echo "unknown datatype";
+                    echo "'" . $defaultValues[$i % count($defaultValues)] . "'";
+            } else {
+                $pathPos = stripos($attribute['Field'] , "path");
+                if ($pathPos !== false)
+                    echo "'/path/to/" . substr($attribute['Field'], $pathPos + 4) . $i . "'";
+                elseif (stripos($attribute['Type'], "char") !== false)
+                    echo "'" . $attribute['Field'] . $i . "'" ;
+                elseif (stripos($attribute['Type'], "int") !== false)
+                    echo $i;
+                elseif (stripos($attribute['Type'], "decimal") !== false 
+                    || stripos($attribute['Type'], "float") !== false)
+                    echo $i . "..5";
+                elseif (stripos($attribute['Type'], "enum") !== false) {
+                    $type = preg_replace("/enum|\(|\)|\'/", "", $attribute['Type']);
+                    $enum = explode(',', $type);
+                    if (isset($enum[$i]))
+                        echo "'" . $enum[$i] . "'";
+                    else
+                        echo "'" . $enum[0] . "'" ;
+                } elseif (stripos($attribute['Type'], "date") !== false) {
+                    echo "'" . date("Y-m-d") . "'" ;
+                } elseif (stripos($attribute['Type'], "time") !== false) {
+                    echo "'" . date("h:i:s") . "'" ;
+                } elseif (stripos($attribute['Type'], "year") !== false) {
+                    echo "'" . date("Y") . "'" ;
+                } elseif (stripos($attribute['Type'], "text") !== false) {
+                    echo "'someTExT'" ;
+                } else
+                    echo "unknown datatype";
+            }
+
         }
         if ($i == $max - 1)
             echo ");<br /><br />";
