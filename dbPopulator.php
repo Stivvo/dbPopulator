@@ -9,7 +9,7 @@
     <body>
 <?php
 $dbName = $_GET['dbName'];
-$max = $_GET['numRows'];
+$numRows = $_GET['numRows'];
 
 $mysqli = @new mysqli("127.0.0.1", "root", "", $dbName);
 require "getDbData.php";
@@ -54,6 +54,12 @@ foreach ($tables as $table) {
             echo ", " . $attribute['Field'];
     }
     echo ") VALUES <br />";
+
+    if (empty($_GET['NUMBER' . $table]))
+        $max = $numRows;
+    else
+        $max = $_GET['NUMBER' . $table];
+
     for ($i = 0; $i < $max; $i++) {
         echo "(";
         $first = true;
@@ -108,7 +114,7 @@ foreach ($tables as $table) {
             if ($goCustom) {
                 $outStr = $customValues[$i % count($customValues)]; // custom values can be used
 
-                if (!(stripos($attribute['Type'], "decimal") !== false 
+                if (!(stripos($attribute['Type'], "decimal") !== false
                     || stripos($attribute['Type'], "float") !== false
                     || stripos($attribute['Type'], "int") !== false))
                     $outStr = "'" . $outStr . "'";
@@ -121,7 +127,7 @@ foreach ($tables as $table) {
                     echo "'" . $attribute['Field'] . $i . "'" ;
                 elseif (stripos($attribute['Type'], "int") !== false)
                     echo $i;
-                elseif (stripos($attribute['Type'], "decimal") !== false 
+                elseif (stripos($attribute['Type'], "decimal") !== false
                     || stripos($attribute['Type'], "float") !== false)
                     echo $i . "..5";
                 elseif (stripos($attribute['Type'], "enum") !== false) {

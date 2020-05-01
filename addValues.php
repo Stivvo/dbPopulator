@@ -14,9 +14,9 @@ $mysqli = @new mysqli("127.0.0.1", "root", "", $dbName);
 $max = $_GET['numRows'];
 ?>
         <form id="" action="dbPopulator.php" method="GET">
-            <label for="dbName">Database name</label>
+            <label for="dbName">database name</label>
             <input type="text" name="dbName" value="<?php echo $dbName; ?>" readonly >
-            <label for="numRows">Number of rows</label>
+            <label for="numRows">global number of rows</label>
             <input type="number" name="numRows" value="<?php echo $max; ?>" readonly >
             <p>
                 For each attribute, a range of custom values can be optionally specified.
@@ -27,13 +27,18 @@ $max = $_GET['numRows'];
                 Custom values must be comma separated, quotes are automatically inserted for string data types.
             </p><p>
                 If the number of rows is greater than the number of inserted custom values for a specific attribute, they will be repeated in the same order to match the specified number of rows, unless "not repeat values" is checked. This will fill the remaining rows with default values
+            </p><p>
+                A custom number of rows can be specified for each entity. if it is not, the global number of rows will be used instead
             </p>
 <?php
 require "getDbData.php";
 
 foreach ($tables as $table) {
-    $attributes = $mysqli->query("SHOW COLUMNS FROM " . $table);
-    echo "<hr /><h2>" . $table . "</h2>";
+    $attributes = $mysqli->query("SHOW COLUMNS FROM " . $table);?>
+    <hr /><h2><?php echo $table; ?></h2>
+    <input type="number" name="<?php echo "NUMBER" . $table ?>">
+    <label for="<?php echo "STOP" . $table ?>">number of rows</label>
+<?php
     foreach ($attributes as $attribute) {
         if (empty($attribute['Key'])) { ?>
         <h3><?php echo $attribute['Field']; ?></h3>
