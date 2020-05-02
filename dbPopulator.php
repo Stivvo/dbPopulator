@@ -100,14 +100,16 @@ foreach ($tables as $table) {
                 echo ", ";
 
             $goCustom = false;
+            $j = $i;
 
             if (!empty($_GET[$attribute['Field']])) {
                 $customValues = explode(', ', $_GET[$attribute['Field']]); // we actually want custom values
                 $goCustom = true;
-
-                if (!empty($_GET['STOP' . $attribute['Field']])) { // not repeat
-                    if ($i >= count($customValues))
+                if (isset($_GET['STOP' . $attribute['Field']]) && !empty($_GET['STOP' . $attribute['Field']])) { // not repeat
+                    if ($i >= count($customValues)) { // custom value finished
                         $goCustom = false;
+                        $j = $i - count($customValues);
+                    }
                 }
             }
 
@@ -124,17 +126,17 @@ foreach ($tables as $table) {
                 if ($pathPos !== false)
                     echo "'/path/to/" . substr($attribute['Field'], $pathPos + 4) . $i . "'";
                 elseif (stripos($attribute['Type'], "char") !== false)
-                    echo "'" . $attribute['Field'] . $i . "'" ;
+                    echo "'" . $attribute['Field'] . $j . "'" ;
                 elseif (stripos($attribute['Type'], "int") !== false)
-                    echo $i;
+                    echo $j;
                 elseif (stripos($attribute['Type'], "decimal") !== false
                     || stripos($attribute['Type'], "float") !== false)
-                    echo $i . "..5";
+                    echo $j . "..5";
                 elseif (stripos($attribute['Type'], "enum") !== false) {
                     $type = preg_replace("/enum|\(|\)|\'/", "", $attribute['Type']);
                     $enum = explode(',', $type);
-                    if (isset($enum[$i]))
-                        echo "'" . $enum[$i] . "'";
+                    if (isset($enum[$j]))
+                        echo "'" . $enum[$j] . "'";
                     else
                         echo "'" . $enum[0] . "'" ;
                 } elseif (stripos($attribute['Type'], "date") !== false) {
