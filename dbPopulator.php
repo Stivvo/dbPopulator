@@ -151,8 +151,17 @@ foreach ($tables as $table) {
                 }
                 elseif (stripos($type, "char") !== false)
                     echo "'" . str_repeat(chr($j + 65), intval(substr($type, $sizePos + 1, $endPos - $sizePos))) . "'";
-                elseif (stripos($attribute['Extra'], "AUTO_INCREMENT") !== false) {// checking the FK, but has the name of the PK
-                    echo mysqli_fetch_all($mysqli->query("SHOW TABLE STATUS LIKE '" . $table . "'"), MYSQLI_ASSOC)[0]['Auto_increment'] + $j;
+                elseif (stripos($attribute['Extra'], "AUTO_INCREMENT") !== false) { // auto_increment FK
+                    $referencedPk = "";
+                    $k = 0;
+                    while (empty($referencedPk) && $k < count($fks)) {
+                        if ($fks[$k]['column_'][0] == $attr['Field'])
+                            $referencedPk = $fks[$k]['primary_'];
+                        $k++;
+                    }
+                    $getNumber = $_GET["NUMBER/" . $referencedPk];
+                    echo (mysqli_fetch_all($mysqli->query("SHOW TABLE STATUS LIKE '" . $table . "'"), MYSQLI_ASSOC)[0]['Auto_increment']
+                        + $j) % (empty($getNumber) ? $numRows : $getNumber);
                 } elseif (stripos($type, "dec") !== false
                     || stripos($type, "int") !== false
                     || stripos($type, "bit") !== false
