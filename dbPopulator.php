@@ -46,12 +46,14 @@ foreach ($tables as $table) {
     $attributes = $mysqli->query("SHOW COLUMNS FROM " . $table);
     echo "INSERT INTO " . $table . " (";
     $first = true;
-    foreach ($attributes as $attribute) {
-        if ($first) {
-            echo $attribute['Field'];
-            $first = false;
-        } else
-            echo ", " . $attribute['Field'];
+    foreach ($attributes as $attribute) { // print attributes
+        if (stripos($attribute['Extra'], "AUTO_INCREMENT") === false) {
+            if ($first) {
+                echo $attribute['Field'];
+                $first = false;
+            } else
+                echo ", " . $attribute['Field'];
+        }
     }
     echo ") VALUES <br />";
 
@@ -116,29 +118,55 @@ foreach ($tables as $table) {
             if ($goCustom) {
                 $outStr = $customValues[$i % count($customValues)]; // custom values can be used
 
-                if (!(stripos($attribute['Type'], "decimal") !== false
+                if (!(stripos($attribute['Type'], "dec") !== false
                     || stripos($attribute['Type'], "float") !== false
+                    || stripos($attribute['Type'], "double") !== false
                     || stripos($attribute['Type'], "int") !== false))
                     $outStr = "'" . $outStr . "'";
                 echo $outStr;
-            } else {
-                $pathPos = stripos($attribute['Field'] , "path");
+            } elseif (stripos($attribute['Extra'], "AUTO_INCREMENT") === false) { // no custom values
+                // don't insert auto_increment attributes
+                $sizePos = stripos($attribute['Type'], "(");
+                $decPos = stripos($attribute['Type'], ",");
+                $endPos = stripos($attribute['Type'], ")");
+                $pathPos = stripos($attribute['Field'], "path");
+                $size = intval(substr($attribute['Type'], $sizePos + 1, $endPos - $sizePos));
+
                 if ($pathPos !== false)
                     echo "'/path/to/" . substr($attribute['Field'], $pathPos + 4) . $i . "'";
+                elseif (stripos($attribute['Type'], "var") !== false) {
+                    if (strlen($attribute['Field']) >= $size)
+                        $cut = substr($attribute['Field'], $size - 1);
+                    else
+                        $cut = $attribute['Field'];
+                    echo "'" . $cut . $j . "'" ;
+
+                }
                 elseif (stripos($attribute['Type'], "char") !== false)
-                    echo "'" . $attribute['Field'] . $j . "'" ;
-                elseif (stripos($attribute['Type'], "int") !== false)
-                    echo $j;
-                elseif (stripos($attribute['Type'], "decimal") !== false
-                    || stripos($attribute['Type'], "float") !== false)
-                    echo $j . "..5";
+                    echo "'" . str_repeat(chr($j + 65), intval(substr($attribute['Type'], $sizePos + 1, $endPos - $sizePos))) . "'";
+                elseif (stripos($attribute['Type'], "dec") !== false
+                    || stripos($attribute['Type'], "int") !== false
+                    || stripos($attribute['Type'], "bit") !== false
+                    || stripos($attribute['Type'], "double") !== false
+                    || stripos($attribute['Type'], "float") !== false) {
+                    if ($decPos === false) {
+                        $dec = -1; // size is already set
+                    } else {
+                        $size = intval(substr($attribute['Type'], $sizePos + 1, $decPos - $sizePos - 1));
+                        $dec = intval(substr($attribute['Type'], $decPos + 1, $endPos - $decPos));
+                    }
+
+                    if ($dec != -1) {
+                        $dec = intval($dec);
+                        echo str_repeat($j, $size - $dec) . "." . str_repeat($j, $dec);
+                    } else
+                        echo str_repeat($j, $size);
+
+                }
                 elseif (stripos($attribute['Type'], "enum") !== false) {
                     $type = preg_replace("/enum|\(|\)|\'/", "", $attribute['Type']);
                     $enum = explode(',', $type);
-                    if (isset($enum[$j]))
-                        echo "'" . $enum[$j] . "'";
-                    else
-                        echo "'" . $enum[0] . "'" ;
+                    echo "'" . $enum[$j % count($enum)] . "'";
                 } elseif (stripos($attribute['Type'], "date") !== false) {
                     echo "'" . date("Y-m-d") . "'" ;
                 } elseif (stripos($attribute['Type'], "time") !== false) {
@@ -149,8 +177,8 @@ foreach ($tables as $table) {
                     echo "'someTExT'" ;
                 } else
                     echo "unknown datatype";
-            }
-
+            } else
+                $first = true;
         }
         if ($i == $max - 1)
             echo ");<br /><br />";
