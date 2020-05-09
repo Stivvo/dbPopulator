@@ -62,26 +62,24 @@ foreach ($tables as $table) {
     else
         $max = $_GET['NUMBER' . $table];
 
-    for ($i = 0; $i < $max; $i++) {
+    for ($i = 0; $i < $max; $i++) { // rows
         echo "(";
         $first = true;
-        foreach ($attributes as $attr) {
-
+        foreach ($attributes as $attr) { // columns
             $pos = -1;
             $elemPos = -1;
             $j = 0;
-            while ($pos == -1 && $j < count($fks)) {
-                /* echo $attr['Field']; */
+            while ($pos == -1 && $j < count($fks)) { // is FK?
                 $tempPos = array_search($attr['Field'], $fks[$j]['column_']);
-                if ($tempPos !== false) {
+                if ($tempPos !== false) { // is definetly FK
                     $pos = $j;
                     $elemPos = $tempPos;
                 }
                 $j++;
             }
-            if ($pos == -1)
+            if ($pos == -1) // is NOT FK
                 $attribute = $attr;
-            else {
+            else { // get the name of the referenced PK
                 $primary = mysqli_fetch_all($mysqli->query(
                     "SHOW KEYS FROM " . $fks[$pos]['primary_'] . " WHERE Key_name = 'PRIMARY'"
                 ), MYSQLI_ASSOC);
@@ -105,55 +103,57 @@ foreach ($tables as $table) {
             $j = $i;
 
             if (!empty($_GET[$attribute['Field']])) {
-                $customValues = explode(', ', $_GET[$attribute['Field']]); // we actually want custom values
+                $customValues = explode(', ', $_GET[$field]); // get custom values
                 $goCustom = true;
-                if (isset($_GET['STOP' . $attribute['Field']]) && !empty($_GET['STOP' . $attribute['Field']])) { // not repeat
+                if (isset($_GET['STOP' . $field]) && !empty($_GET['STOP' . $field])) { // not repeat
                     if ($i >= count($customValues)) { // custom value finished
                         $goCustom = false;
                         $j = $i - count($customValues);
                     }
                 }
             }
+            $type = $attribute['Type'];
+            $field = $attribute['Field'];
 
-            if ($goCustom) {
-                $outStr = $customValues[$i % count($customValues)]; // custom values can be used
+            if ($goCustom) { // use custom values for this row of this column (attribute)
+                $outStr = $customValues[$i % count($customValues)];
 
-                if (!(stripos($attribute['Type'], "dec") !== false
-                    || stripos($attribute['Type'], "float") !== false
-                    || stripos($attribute['Type'], "double") !== false
-                    || stripos($attribute['Type'], "int") !== false))
+                if (!(stripos($type, "dec") !== false
+                    || stripos($type, "float") !== false
+                    || stripos($type, "double") !== false
+                    || stripos($type, "int") !== false))
                     $outStr = "'" . $outStr . "'";
                 echo $outStr;
             } elseif (stripos($attribute['Extra'], "AUTO_INCREMENT") === false) { // no custom values
                 // don't insert auto_increment attributes
-                $sizePos = stripos($attribute['Type'], "(");
-                $decPos = stripos($attribute['Type'], ",");
-                $endPos = stripos($attribute['Type'], ")");
-                $pathPos = stripos($attribute['Field'], "path");
-                $size = intval(substr($attribute['Type'], $sizePos + 1, $endPos - $sizePos));
+                $sizePos = stripos($type, "(");
+                $decPos = stripos($type, ",");
+                $endPos = stripos($type, ")");
+                $pathPos = stripos($field, "path");
+                $size = intval(substr($type, $sizePos + 1, $endPos - $sizePos));
 
                 if ($pathPos !== false)
-                    echo "'/path/to/" . substr($attribute['Field'], $pathPos + 4) . $i . "'";
-                elseif (stripos($attribute['Type'], "var") !== false) {
-                    if (strlen($attribute['Field']) >= $size)
-                        $cut = substr($attribute['Field'], $size - 1);
+                    echo "'/path/to/" . substr($field, $pathPos + 4) . $i . "'";
+                elseif (stripos($type, "var") !== false) {
+                    if (strlen($field) >= $size)
+                        $cut = substr($field, $size - 1);
                     else
-                        $cut = $attribute['Field'];
+                        $cut = $field;
                     echo "'" . $cut . $j . "'" ;
 
                 }
-                elseif (stripos($attribute['Type'], "char") !== false)
-                    echo "'" . str_repeat(chr($j + 65), intval(substr($attribute['Type'], $sizePos + 1, $endPos - $sizePos))) . "'";
-                elseif (stripos($attribute['Type'], "dec") !== false
-                    || stripos($attribute['Type'], "int") !== false
-                    || stripos($attribute['Type'], "bit") !== false
-                    || stripos($attribute['Type'], "double") !== false
-                    || stripos($attribute['Type'], "float") !== false) {
+                elseif (stripos($type, "char") !== false)
+                    echo "'" . str_repeat(chr($j + 65), intval(substr($type, $sizePos + 1, $endPos - $sizePos))) . "'";
+                elseif (stripos($type, "dec") !== false
+                    || stripos($type, "int") !== false
+                    || stripos($type, "bit") !== false
+                    || stripos($type, "double") !== false
+                    || stripos($type, "float") !== false) {
                     if ($decPos === false) {
                         $dec = -1; // size is already set
                     } else {
-                        $size = intval(substr($attribute['Type'], $sizePos + 1, $decPos - $sizePos - 1));
-                        $dec = intval(substr($attribute['Type'], $decPos + 1, $endPos - $decPos));
+                        $size = intval(substr($type, $sizePos + 1, $decPos - $sizePos - 1));
+                        $dec = intval(substr($type, $decPos + 1, $endPos - $decPos));
                     }
 
                     if ($dec != -1) {
@@ -163,17 +163,17 @@ foreach ($tables as $table) {
                         echo str_repeat($j, $size);
 
                 }
-                elseif (stripos($attribute['Type'], "enum") !== false) {
-                    $type = preg_replace("/enum|\(|\)|\'/", "", $attribute['Type']);
+                elseif (stripos($type, "enum") !== false) {
+                    $type = preg_replace("/enum|\(|\)|\'/", "", $type);
                     $enum = explode(',', $type);
                     echo "'" . $enum[$j % count($enum)] . "'";
-                } elseif (stripos($attribute['Type'], "date") !== false) {
+                } elseif (stripos($type, "date") !== false) {
                     echo "'" . date("Y-m-d") . "'" ;
-                } elseif (stripos($attribute['Type'], "time") !== false) {
+                } elseif (stripos($type, "time") !== false) {
                     echo "'" . date("h:i:s") . "'" ;
-                } elseif (stripos($attribute['Type'], "year") !== false) {
+                } elseif (stripos($type, "year") !== false) {
                     echo "'" . date("Y") . "'" ;
-                } elseif (stripos($attribute['Type'], "text") !== false) {
+                } elseif (stripos($type, "text") !== false) {
                     echo "'someTExT'" ;
                 } else
                     echo "unknown datatype";
