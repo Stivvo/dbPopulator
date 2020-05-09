@@ -13,7 +13,7 @@ $dbName = $_GET['dbName'];
 $mysqli = @new mysqli("127.0.0.1", "root", "", $dbName);
 $max = $_GET['numRows'];
 ?>
-        <form id="" action="dbPopulator.php" method="GET">
+        <form action="dbPopulator.php" method="GET">
             <label for="dbName">database name</label>
             <input type="text" name="dbName" value="<?php echo $dbName; ?>" readonly >
             <label for="numRows">global number of rows</label>
@@ -31,31 +31,37 @@ $max = $_GET['numRows'];
                 Primary keys are forced to not repeat custom values. Custom values can't be set at all for auto_increment primary keys, enums and foreign keyS
             </p><p>
                 A custom number of rows can be specified for each entity. if it is not, the global number of rows will be used instead
+            </p><p>
+                Foreign keys that are also primary keys are only detected as primary keys, so you should set custom values to fix that
             </p>
 <?php
 require "getDbData.php";
 
 foreach ($tables as $table) {
+    $getNumber = "NUMBER/" . $table;
     $attributes = $mysqli->query("SHOW COLUMNS FROM " . $table); ?>
     <hr /><h2><?php echo $table; ?></h2>
-    <input type="number" name="<?php echo "NUMBER" . $table ?>">
-    <label for="<?php echo "STOP" . $table ?>">number of rows</label>
+    <input type="number" name="<?php echo $getNumber ?>">
+    <label for="<?php echo $getNumber ?>">number of rows</label>
 <?php
     foreach ($attributes as $attribute) {
         if ($attribute['Key'] != "MUL" && $attribute['Extra'] != "auto_increment" && stripos($attribute['Type'], "enum") === false) { ?>
         <h3><?php echo $attribute['Field']; ?></h3>
         <div>
-<?php if (empty($attribute['Key'])) { ?>
-        <input type="checkbox" name="<?php echo "STOP" . $attribute['Field'] ?>" value="true">
+<?php
+    $getStop = "STOP/" . $table . "/" . $attribute['Field'];
+
+    if (empty($attribute['Key'])) { ?>
+        <input type="checkbox" name="<?php echo $getStop ?>" value="true">
 <?php } else { // is primary key ?>
         <input type="checkbox" name="dummy" disabled="true" checked="checked">
-        <input type="checkbox" name="<?php echo "STOP" . $attribute['Field'] ?>" value="true"
+        <input type="checkbox" name="<?php echo $getStop ?>" value="true"
             style="display: none" checked="checked">
 <?php } ?>
-        <label for="<?php echo "STOP" . $attribute['Field'] ?>">not repeat values</label>
+
+        <label for="<?php echo $getStop ?>">not repeat values</label>
         </div>
-<textarea name="<?php echo $attribute['Field'] ?>" rows="4" cols="80" placeholder="Value1, Value2, Value3">
-</textarea>
+<textarea name="<?php echo "ENTITY/" . $table . "/" . $attribute['Field'] ?>" rows="4" cols="80" placeholder="Value1, Value2, Value3"></textarea>
 <?php
         }
     }

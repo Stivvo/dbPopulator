@@ -57,10 +57,11 @@ foreach ($tables as $table) {
     }
     echo ") VALUES <br />";
 
-    if (empty($_GET['NUMBER' . $table]))
+    $getNumber = $_GET['NUMBER/' . $table];
+    if (empty($getNumber))
         $max = $numRows;
     else
-        $max = $_GET['NUMBER' . $table];
+        $max = $getNumber;
 
     for ($i = 0; $i < $max; $i++) { // rows
         echo "(";
@@ -94,18 +95,15 @@ foreach ($tables as $table) {
                 /* print_r($attribute); */
             }
 
-            if ($first)
-                $first = false;
-            else
-                echo ", ";
-
             $goCustom = false;
             $j = $i;
 
-            if (!empty($_GET[$attribute['Field']])) {
-                $customValues = explode(', ', $_GET[$field]); // get custom values
+            $getEntity = "ENTITY/" . $table . "/" . $attribute['Field'];
+            $getStop = "STOP/" . $table . "/" . $attribute['Field'];
+            if (!empty($_GET[$getEntity])) { // some custom values specified
+                $customValues = explode(', ', $_GET[$getEntity]); // get custom values
                 $goCustom = true;
-                if (isset($_GET['STOP' . $field]) && !empty($_GET['STOP' . $field])) { // not repeat
+                if (isset($_GET[$getStop]) && !empty($_GET[$getStop])) { // not repeat
                     if ($i >= count($customValues)) { // custom value finished
                         $goCustom = false;
                         $j = $i - count($customValues);
@@ -114,6 +112,13 @@ foreach ($tables as $table) {
             }
             $type = $attribute['Type'];
             $field = $attribute['Field'];
+
+            if (stripos($attr['Extra'], "AUTO_INCREMENT") === false) {
+                if ($first)
+                    $first = false;
+                else
+                    echo ", ";
+            }
 
             if ($goCustom) { // use custom values for this row of this column (attribute)
                 $outStr = $customValues[$i % count($customValues)];
@@ -124,8 +129,10 @@ foreach ($tables as $table) {
                     || stripos($type, "int") !== false))
                     $outStr = "'" . $outStr . "'";
                 echo $outStr;
-            } elseif (stripos($attribute['Extra'], "AUTO_INCREMENT") === false) { // no custom values
+            } elseif (stripos($attr['Extra'], "AUTO_INCREMENT") === false) { // no custom values
                 // don't insert auto_increment attributes
+                // attr is checked instead of attribute because if attr is a FK, attribute will get the name of the referenced PK
+
                 $sizePos = stripos($type, "(");
                 $decPos = stripos($type, ",");
                 $endPos = stripos($type, ")");
@@ -144,7 +151,9 @@ foreach ($tables as $table) {
                 }
                 elseif (stripos($type, "char") !== false)
                     echo "'" . str_repeat(chr($j + 65), intval(substr($type, $sizePos + 1, $endPos - $sizePos))) . "'";
-                elseif (stripos($type, "dec") !== false
+                elseif (stripos($attribute['Extra'], "AUTO_INCREMENT") !== false) {// checking the FK, but has the name of the PK
+                    echo mysqli_fetch_all($mysqli->query("SHOW TABLE STATUS LIKE '" . $table . "'"), MYSQLI_ASSOC)[0]['Auto_increment'] + $j;
+                } elseif (stripos($type, "dec") !== false
                     || stripos($type, "int") !== false
                     || stripos($type, "bit") !== false
                     || stripos($type, "double") !== false
@@ -177,8 +186,7 @@ foreach ($tables as $table) {
                     echo "'someTExT'" ;
                 } else
                     echo "unknown datatype";
-            } else
-                $first = true;
+            }
         }
         if ($i == $max - 1)
             echo ");<br /><br />";
