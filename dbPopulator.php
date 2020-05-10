@@ -1,12 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width">
-        <title>DB populator</title>
-        <link rel="stylesheet" href="style.css" type="text/css" media="all">
-    </head>
-    <body id="sqlCode">
+<?php
+if ($_GET['downMethod'] == "show") {
+    $break = "<br />";
+    echo "<!DOCTYPE html>";
+} else {
+    $break = "\n";
+    header('Content-type: text/sql');
+    header("Content-disposition: filename=output.sql");
+}
+
+?>
 <?php
 $dbName = $_GET['dbName'];
 $numRows = $_GET['numRows'];
@@ -55,7 +57,7 @@ foreach ($tables as $table) {
                 echo ", " . $attribute['Field'];
         }
     }
-    echo ") VALUES <br />";
+    echo ") VALUES" . $break;
 
     $getNumber = $_GET['NUMBER/' . $table];
     if (empty($getNumber))
@@ -198,12 +200,10 @@ foreach ($tables as $table) {
             }
         }
         if ($i == $max - 1)
-            echo ");<br /><br />";
+            echo ");" . $break . $break;
         else
-            echo "),<br />";
+            echo ")," . $break;
     }
 }
 $mysqli->close();
 ?>
-    </body>
-</html>

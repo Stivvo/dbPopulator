@@ -81,10 +81,15 @@ foreach ($tables as $table) {
 <?php
 }
 $mysqli->close(); ?>
+        <hr />
         <div>
-            <hr />
-            <input type="submit" value="populate database">
+            <label for="downMethod">show sql</label>
+            <input type="radio" name="downMethod" value="show">
+
+            <label for="downMethod">download sql</label>
+            <input type="radio" name="downMethod" value="download">
         </div>
+        <input type="submit" value="populate database">
     </form>
 </body>
 </html>
