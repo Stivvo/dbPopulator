@@ -6,6 +6,7 @@
     <script charset="utf-8" src="script.js"></script>
     <title>DB populator</title>
     <link rel="stylesheet" href="style.css" type="text/css" media="all">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></link>
 </head>
 <body>
     <h1>Insert custom values</h1>
@@ -41,18 +42,23 @@ require "getDbData.php";
 foreach ($tables as $table) {
     $attributes = $mysqli->query("SHOW COLUMNS FROM " . $table);
     $getNumber = "NUMBER/" . $table;
-    $getTable = "TABLE/" . $table; ?>
+    $getContent = "CONTENT/" . $table; ?>
     <hr />
-    <div class="table" onclick="showTable('<?php echo $getTable ?>')">
-        <h2><?php echo $table; ?></h2>
+    <div class="table" onclick="showTable('<?php echo $table ?>')">
+        <h2>
+        <span id="<?php echo "FA/" . $table ?>"></span>
+<?php echo $table ?>
+        </h2>
     </div>
-    <div id="TABLE/<?php echo $table ?>" class="tableContent">
+    <div id="<?php echo $getContent ?>" class="tableContent">
         <input type="number" name="<?php echo $getNumber ?>">
         <label for="<?php echo $getNumber ?>">number of rows</label>
     <?php
     foreach ($attributes as $attribute) {
         if ($attribute['Key'] != "MUL" && $attribute['Extra'] != "auto_increment" && stripos($attribute['Type'], "enum") === false) { ?>
-            <h3><?php echo $attribute['Field']; ?></h3>
+            <h3>
+<?php echo (empty($attribute['Key']) ? "<span class=\"fa fa-key\"></span>&nbsp;" : "") . $attribute['Field']; ?>
+            </h3>
             <div>
         <?php   $getStop = "STOP/" . $table . "/" . $attribute['Field'];
 
@@ -69,7 +75,7 @@ foreach ($tables as $table) {
 <?php   }
     } ?>
     <script>
-        showTable('<?php echo $getTable ?>');
+        showTable('<?php echo $table ?>');
     </script>
     </div>
 <?php

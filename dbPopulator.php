@@ -6,7 +6,7 @@
         <title>DB populator</title>
         <link rel="stylesheet" href="style.css" type="text/css" media="all">
     </head>
-    <body>
+    <body id="sqlCode">
 <?php
 $dbName = $_GET['dbName'];
 $numRows = $_GET['numRows'];
