@@ -1,7 +1,14 @@
 <?php
 if ($_GET['downMethod'] == "show") {
     $break = "<br />";
-    echo "<!DOCTYPE html>";
+?>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <link rel="stylesheet" href="style.css" type="text/css">
+    </head>
+    <body id="sqlCode">
+<?php
 } else {
     $break = "\n";
     header('Content-type: text/sql');
@@ -205,4 +212,8 @@ foreach ($tables as $table) {
     }
 }
 $mysqli->close();
-?>
+
+if ($_GET['downMethod'] == "show") { ?>
+    </body>
+</html>
+<?php } ?>
