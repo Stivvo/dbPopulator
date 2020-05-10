@@ -141,19 +141,27 @@ foreach ($tables as $table) {
                 $pathPos = stripos($field, "path");
                 $size = intval(substr($type, $sizePos + 1, $endPos - $sizePos));
 
+                $nrDigits = 0;
+                $tmpJ = $j;
+                while ($tmpJ >= 1) {
+                    $tmpJ /= 10;
+                    $nrDigits++;
+                }
+                $nrDigits = intval($nrDigits);
+
                 if ($pathPos !== false)
                     echo "'/path/to/" . substr($field, $pathPos + 4) . $i . "'";
                 elseif (stripos($type, "var") !== false) {
-                    if (strlen($field) >= $size)
-                        $cut = substr($field, $size - 1);
+                    if (strlen($field) + $nrDigits > $size)
+                        $cut = substr($field, $size - $nrDigits);
                     else
                         $cut = $field;
                     echo "'" . $cut . $j . "'" ;
-
                 }
-                elseif (stripos($type, "char") !== false)
-                    echo "'" . str_repeat(chr($j + 65), intval(substr($type, $sizePos + 1, $endPos - $sizePos))) . "'";
-                elseif (stripos($attribute['Extra'], "AUTO_INCREMENT") !== false) { // auto_increment FK
+                elseif (stripos($type, "char") !== false) {
+                    echo "'" . str_repeat(chr(($j % 26) + 65), intval(substr($type, $sizePos + 1, $endPos - $sizePos)) - $nrDigits) . $j . "'";
+
+                } elseif (stripos($attribute['Extra'], "AUTO_INCREMENT") !== false) { // auto_increment FK
                     $referencedPk = "";
                     $k = 0;
                     while (empty($referencedPk) && $k < count($fks)) {
@@ -164,26 +172,17 @@ foreach ($tables as $table) {
                     $getNumber = $_GET["NUMBER/" . $referencedPk];
                     echo (mysqli_fetch_all($mysqli->query("SHOW TABLE STATUS LIKE '" . $table . "'"), MYSQLI_ASSOC)[0]['Auto_increment']
                         + $j) % (empty($getNumber) ? $numRows : $getNumber);
+                } elseif (stripos($type, "int") !== false
+                    || stripos($type, "bit") !== false) {
+                        echo $j % pow(10, $size);
                 } elseif (stripos($type, "dec") !== false
-                    || stripos($type, "int") !== false
-                    || stripos($type, "bit") !== false
                     || stripos($type, "double") !== false
                     || stripos($type, "float") !== false) {
-                    if ($decPos === false) {
-                        $dec = -1; // size is already set
-                    } else {
-                        $size = intval(substr($type, $sizePos + 1, $decPos - $sizePos - 1));
-                        $dec = intval(substr($type, $decPos + 1, $endPos - $decPos));
-                    }
+                        $size = intval(substr($type, $sizePos + 1, $decPos - $sizePos - 1)); // size is only the integer part
+                        $dec = intval(substr($type, $decPos + 1, $endPos - $decPos)); // dec is the size of the decimal part
 
-                    if ($dec != -1) {
-                        $dec = intval($dec);
-                        echo str_repeat($j, $size - $dec) . "." . str_repeat($j, $dec);
-                    } else
-                        echo str_repeat($j, $size);
-
-                }
-                elseif (stripos($type, "enum") !== false) {
+                        echo ($j % pow(10, $size)) . "." . ($j % pow(10, $dec));
+                } elseif (stripos($type, "enum") !== false) {
                     $type = preg_replace("/enum|\(|\)|\'/", "", $type);
                     $enum = explode(',', $type);
                     echo "'" . $enum[$j % count($enum)] . "'";
