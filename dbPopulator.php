@@ -41,6 +41,16 @@ group by fks.constraint_schema,
          fks.constraint_name
 ");
 
+$fileName = "/tmp/dbPopulatorOutput.sql";
+$file = fopen($fileName, "w+");
+fclose($file);
+$file = fopen($fileName, "a");
+
+function out($str) {
+    echo $str;
+    fwrite($GLOBALS['file'], $str);
+}
+
 $fks = [];
 $i = 0;
 foreach ($fksRaw as $value) {
@@ -53,18 +63,18 @@ foreach ($fksRaw as $value) {
 
 foreach ($tables as $table) {
     $attributes = $mysqli->query("SHOW COLUMNS FROM " . $table);
-    echo "INSERT INTO " . $table . " (";
+    out("INSERT INTO " . $table . " (");
     $first = true;
     foreach ($attributes as $attribute) { // print attributes
         if (stripos($attribute['Extra'], "AUTO_INCREMENT") === false) {
             if ($first) {
-                echo $attribute['Field'];
+                out($attribute['Field']);
                 $first = false;
             } else
-                echo ", " . $attribute['Field'];
+                out(", " . $attribute['Field']);
         }
     }
-    echo ") VALUES" . $break;
+    out(") VALUES" . $break);
 
     $getNumber = $_GET['NUMBER/' . $table];
     if (empty($getNumber))
@@ -73,7 +83,7 @@ foreach ($tables as $table) {
         $max = $getNumber;
 
     for ($i = 0; $i < $max; $i++) { // rows
-        echo "(";
+        out("(");
         $first = true;
         foreach ($attributes as $attr) { // columns
             $pos = -1;
@@ -94,9 +104,9 @@ foreach ($tables as $table) {
                     "SHOW KEYS FROM " . $fks[$pos]['primary_'] . " WHERE Key_name = 'PRIMARY'"
                 ), MYSQLI_ASSOC);
 
-                /* echo "attributo: " . $attr['Field'] . ", entità lato uno: " . $fks[$pos]['primary_']; */
-                /* echo "column name: " . $primary[$elemPos]['Column_name']; */
-                /* echo "SHOW COLUMNS FROM " . $fks[$pos]['primary_'] . " WHERE Field = '" . $primary[$elemPos]['Column_name'] . "'"; */
+                /* out("attributo: " . $attr['Field'] . ", entità lato uno: " . $fks[$pos]['primary_']); */
+                /* out("column name: " . $primary[$elemPos]['Column_name']); */
+                /* out("SHOW COLUMNS FROM " . $fks[$pos]['primary_'] . " WHERE Field = '" . $primary[$elemPos]['Column_name'] . "'"); */
 
                 $attribute = mysqli_fetch_all($mysqli->query(
                     "SHOW COLUMNS FROM " . $fks[$pos]['primary_'] . " WHERE Field = '" . $primary[$elemPos]['Column_name'] . "'"
@@ -126,7 +136,7 @@ foreach ($tables as $table) {
                 if ($first)
                     $first = false;
                 else
-                    echo ", ";
+                    out(", ");
             }
 
             if ($goCustom) { // use custom values for this row of this column (attribute)
@@ -137,7 +147,7 @@ foreach ($tables as $table) {
                     || stripos($type, "double") !== false
                     || stripos($type, "int") !== false))
                     $outStr = "'" . $outStr . "'";
-                echo $outStr;
+                out($outStr);
             } elseif (stripos($attr['Extra'], "AUTO_INCREMENT") === false) { // no custom values
                 // don't insert auto_increment attributes
                 // attr is checked instead of attribute because if attr is a FK, attribute will get the name of the referenced PK
@@ -148,25 +158,29 @@ foreach ($tables as $table) {
                 $pathPos = stripos($field, "path");
                 $size = intval(substr($type, $sizePos + 1, $endPos - $sizePos));
 
-                $nrDigits = 0;
-                $tmpJ = $j;
-                while ($tmpJ >= 1) {
-                    $tmpJ /= 10;
-                    $nrDigits++;
+                if ($j == 0) {
+                    $nrDigits = 1;
+                } else {
+                    $nrDigits = 0;
+                    $tmpJ = $j;
+                    while ($tmpJ >= 1) {
+                        $tmpJ /= 10;
+                        $nrDigits++;
+                    }
+                    $nrDigits = intval($nrDigits);
                 }
-                $nrDigits = intval($nrDigits);
 
                 if ($pathPos !== false)
-                    echo "'/path/to/" . substr($field, $pathPos + 4) . $i . "'";
+                    out("'/path/to/" . substr($field, $pathPos + 4) . $i . "'");
                 elseif (stripos($type, "var") !== false) {
                     if (strlen($field) + $nrDigits > $size)
                         $cut = substr($field, $size - $nrDigits);
                     else
                         $cut = $field;
-                    echo "'" . $cut . $j . "'" ;
+                    out("'" . $cut . $j . "'" );
                 }
                 elseif (stripos($type, "char") !== false) {
-                    echo "'" . str_repeat(chr(($j % 26) + 65), intval(substr($type, $sizePos + 1, $endPos - $sizePos)) - $nrDigits) . $j . "'";
+                    out("'" . str_repeat(chr(($j % 26) + 65), intval(substr($type, $sizePos + 1, $endPos - $sizePos)) - $nrDigits) . $j . "'");
 
                 } elseif (stripos($attribute['Extra'], "AUTO_INCREMENT") !== false) { // auto_increment FK
                     $referencedPk = "";
@@ -177,41 +191,41 @@ foreach ($tables as $table) {
                         $k++;
                     }
                     $getNumber = $_GET["NUMBER/" . $referencedPk];
-                    echo (mysqli_fetch_all($mysqli->query("SHOW TABLE STATUS LIKE '" . $table . "'"), MYSQLI_ASSOC)[0]['Auto_increment']
-                        + $j) % (empty($getNumber) ? $numRows : $getNumber);
+                    out((mysqli_fetch_all($mysqli->query("SHOW TABLE STATUS LIKE '" . $table . "'"), MYSQLI_ASSOC)[0]['Auto_increment']
+                        + $j) % (empty($getNumber) ? $numRows : $getNumber));
                 } elseif (stripos($type, "int") !== false
                     || stripos($type, "bit") !== false) {
-                        echo $j % pow(10, $size);
+                        out($j % pow(10, $size));
                 } elseif (stripos($type, "dec") !== false
                     || stripos($type, "double") !== false
                     || stripos($type, "float") !== false) {
                         $size = intval(substr($type, $sizePos + 1, $decPos - $sizePos - 1)); // size is only the integer part
                         $dec = intval(substr($type, $decPos + 1, $endPos - $decPos)); // dec is the size of the decimal part
-
-                        echo ($j % pow(10, $size)) . "." . ($j % pow(10, $dec));
+                        out(($j % pow(10, $size)) . "." . ($j % pow(10, $dec)));
                 } elseif (stripos($type, "enum") !== false) {
                     $type = preg_replace("/enum|\(|\)|\'/", "", $type);
                     $enum = explode(',', $type);
-                    echo "'" . $enum[$j % count($enum)] . "'";
+                    out("'" . $enum[$j % count($enum)] . "'");
                 } elseif (stripos($type, "date") !== false) {
-                    echo "'" . date("Y-m-d") . "'" ;
+                    out("'" . date("Y-m-d") . "'" );
                 } elseif (stripos($type, "time") !== false) {
-                    echo "'" . date("h:i:s") . "'" ;
+                    out("'" . date("h:i:s") . "'" );
                 } elseif (stripos($type, "year") !== false) {
-                    echo "'" . date("Y") . "'" ;
+                    out("'" . date("Y") . "'" );
                 } elseif (stripos($type, "text") !== false) {
-                    echo "'someTExT'" ;
+                    out("'someTExT'" );
                 } else
-                    echo "unknown datatype";
+                    out("unknown datatype");
             }
         }
         if ($i == $max - 1)
-            echo ");" . $break . $break;
+            out(");" . $break . $break);
         else
-            echo ")," . $break;
+            out(")," . $break);
     }
 }
 $mysqli->close();
+fclose($file);
 
 if ($_GET['downMethod'] == "show") { ?>
     </body>

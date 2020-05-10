@@ -14,5 +14,8 @@ function showTable(table) {
         tableContent.style.height = "0px";
         tableFa.className = "fa fa-angle-right";
     }
+}
 
+window.onload = function() {
+    this.document.getElementsByName('downMethod')[1].checked = true;
 }
