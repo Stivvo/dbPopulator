@@ -191,8 +191,11 @@ foreach ($tables as $table) {
                         $k++;
                     }
                     $getNumber = $_GET["NUMBER/" . $referencedPk];
-                    out((mysqli_fetch_all($mysqli->query("SHOW TABLE STATUS LIKE '" . $table . "'"), MYSQLI_ASSOC)[0]['Auto_increment']
-                        + $j) % (empty($getNumber) ? $numRows : $getNumber));
+                    $autoIncrement = mysqli_fetch_all($mysqli->query("SHOW TABLE STATUS LIKE '" . $table . "'"), MYSQLI_ASSOC)[0]['Auto_increment'];
+
+                    if (!isset($autoIncrement) || empty($autoIncrement))
+                        $autoIncrement = 1;
+                    out(($autoIncrement + $j) % ((empty($getNumber) ? $numRows : $getNumber) + $autoIncrement));
                 } elseif (stripos($type, "int") !== false
                     || stripos($type, "bit") !== false) {
                         out($j % pow(10, $size));
